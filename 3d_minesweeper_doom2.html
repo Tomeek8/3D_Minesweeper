@@ -179,6 +179,10 @@
     let particles = [];
     let explosionParticles = [];
 
+    // Time-based rotation variables
+    let lastTime = 0;
+    let deltaTime = 0;
+
     // Doom-style colors
     const COLORS = {
       hidden: 0x333333, // Dark grey for hidden blocks
@@ -293,8 +297,10 @@
           const deltaX = event.clientX - mouseX;
           const deltaY = event.clientY - mouseY;
 
-          targetRotationY -= deltaX * 0.01; // Reverted to original correct direction
-          targetRotationX += deltaY * 0.01;
+          // Mouse sensitivity - consistent across different frame rates
+          const mouseSensitivity = 0.005;
+          targetRotationY -= deltaX * mouseSensitivity;
+          targetRotationX += deltaY * mouseSensitivity;
 
           mouseX = event.clientX;
           mouseY = event.clientY;
@@ -328,36 +334,44 @@
         keys[event.code] = false;
       });
 
-      // Handle keyboard rotation
+      // Handle keyboard rotation - now time-based
       function handleKeyboardInput() {
-        const rotationSpeed = 0.25;
+        const rotationSpeed = 1.5; // radians per second
+        const frameRotation = rotationSpeed * deltaTime;
 
         if (keys['ArrowLeft']) {
-          targetRotationY += rotationSpeed; // Rotate left
+          targetRotationY += frameRotation; // Rotate left
         }
         if (keys['ArrowRight']) {
-          targetRotationY -= rotationSpeed; // Rotate right
+          targetRotationY -= frameRotation; // Rotate right
         }
         if (keys['ArrowUp']) {
-          targetRotationX -= rotationSpeed;
+          targetRotationX -= frameRotation;
         }
         if (keys['ArrowDown']) {
-          targetRotationX += rotationSpeed;
+          targetRotationX += frameRotation;
         }
       }
 
-      // Smooth rotation
-      function updateRotation() {
-        // Auto rotation when game starts
+      // Smooth rotation with delta time
+      function updateRotation(currentTime) {
+        if (lastTime === 0) lastTime = currentTime;
+        deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+        lastTime = currentTime;
+
+        // Auto rotation when game starts - now time-based
         if (autoRotate && !userInteracted) {
-          targetRotationX += 0.03;
-          targetRotationY += 0.04;
+          const autoRotationSpeed = 0.5; // radians per second
+          targetRotationX += autoRotationSpeed * 0.6 * deltaTime;
+          targetRotationY += autoRotationSpeed * 0.8 * deltaTime;
         }
 
         handleKeyboardInput();
 
-        currentRotationX += (targetRotationX - currentRotationX) * 0.1;
-        currentRotationY += (targetRotationY - currentRotationY) * 0.1;
+        // Smooth interpolation - now time-based
+        const smoothingFactor = 6.0; // Higher = faster smoothing
+        currentRotationX += (targetRotationX - currentRotationX) * smoothingFactor * deltaTime;
+        currentRotationY += (targetRotationY - currentRotationY) * smoothingFactor * deltaTime;
 
         const radius = camera.position.length();
         camera.position.x = radius * Math.sin(currentRotationY) * Math.cos(currentRotationX);
@@ -376,7 +390,7 @@
         camera.lookAt(0, 0, 0);
         requestAnimationFrame(updateRotation);
       }
-      updateRotation();
+      updateRotation(0);
     }
 
     function handleClick(event) {
