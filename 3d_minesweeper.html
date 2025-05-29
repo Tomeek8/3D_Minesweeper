@@ -628,12 +628,12 @@
 
         const radius = camera.position.length();
 
-        // Clamp rotation values to prevent floating point errors (only when user interacted)
-        if (userInteracted) {
-          currentRotationX = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, currentRotationX));
-        }
+        // Calculate new position
+        // Clamping for vertical rotation was removed based on user request.
+        // if (userInteracted) {
+        //   currentRotationX = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, currentRotationX));
+        // }
 
-        // Calculate new position with clamped values
         const newX = radius * Math.sin(currentRotationY) * Math.cos(currentRotationX);
         const newY = radius * Math.sin(currentRotationX);
         const newZ = radius * Math.cos(currentRotationY) * Math.cos(currentRotationX);
@@ -816,7 +816,7 @@
       createMeshes();
 
       const maxDim = Math.max(gridSize.x, gridSize.y, gridSize.z);
-      camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
+      camera.position.set(maxDim * 1.5, maxDim * 1.5, maxDim * 1.5);
       camera.lookAt(0, 0, 0);
     }
 
