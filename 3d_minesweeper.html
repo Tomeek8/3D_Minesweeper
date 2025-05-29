@@ -573,7 +573,17 @@
 
       renderer.domElement.addEventListener('wheel', (event) => {
         event.preventDefault();
-        camera.position.multiplyScalar(event.deltaY > 0 ? 1.1 : 0.9);
+        const currentDistance = camera.position.length();
+        const zoomFactor = event.deltaY > 0 ? 1.1 : 0.9;
+        const newDistance = currentDistance * zoomFactor;
+
+        // Limit zoom to prevent extreme values that cause jittering
+        const minDistance = Math.max(gridSize.x, gridSize.y, gridSize.z) * 1.5;
+        const maxDistance = Math.max(gridSize.x, gridSize.y, gridSize.z) * 8;
+
+        if (newDistance >= minDistance && newDistance <= maxDistance) {
+          camera.position.multiplyScalar(zoomFactor);
+        }
       });
 
       renderer.domElement.addEventListener('contextmenu', (event) => {
@@ -617,9 +627,20 @@
         currentRotationY += (targetRotationY - currentRotationY) * smoothingFactor * deltaTime;
 
         const radius = camera.position.length();
-        camera.position.x = radius * Math.sin(currentRotationY) * Math.cos(currentRotationX);
-        camera.position.y = radius * Math.sin(currentRotationX);
-        camera.position.z = radius * Math.cos(currentRotationY) * Math.cos(currentRotationX);
+
+        // Clamp rotation values to prevent floating point errors
+        currentRotationX = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, currentRotationX));
+
+        // Calculate new position with clamped values
+        const newX = radius * Math.sin(currentRotationY) * Math.cos(currentRotationX);
+        const newY = radius * Math.sin(currentRotationX);
+        const newZ = radius * Math.cos(currentRotationY) * Math.cos(currentRotationX);
+
+        // Apply position with precision check to prevent micro-movements
+        const threshold = 0.0001;
+        if (Math.abs(camera.position.x - newX) > threshold) camera.position.x = newX;
+        if (Math.abs(camera.position.y - newY) > threshold) camera.position.y = newY;
+        if (Math.abs(camera.position.z - newZ) > threshold) camera.position.z = newZ;
 
         const cosX = Math.cos(currentRotationX);
         if (cosX < -cameraUpEpsilon) {
@@ -1247,15 +1268,29 @@
       }
     }
 
+    let shakeStartTime = 0;
+    const shakeDuration = 2000; // 2 seconds
+
     function animate() {
       requestAnimationFrame(animate);
       updateParticles();
 
+      // Only shake camera for a limited time after game ends with explosion
       if (gameEnded && explosionParticles.length > 0) {
-        const shake = 0.1;
-        camera.position.x += (Math.random() - 0.5) * shake;
-        camera.position.y += (Math.random() - 0.5) * shake;
-        camera.position.z += (Math.random() - 0.5) * shake;
+        const currentTime = Date.now();
+        if (shakeStartTime === 0) {
+          shakeStartTime = currentTime;
+        }
+
+        if (currentTime - shakeStartTime < shakeDuration) {
+          const shakeIntensity = Math.max(0, 1 - (currentTime - shakeStartTime) / shakeDuration);
+          const shake = 0.05 * shakeIntensity; // Reduced shake intensity
+          camera.position.x += (Math.random() - 0.5) * shake;
+          camera.position.y += (Math.random() - 0.5) * shake;
+          camera.position.z += (Math.random() - 0.5) * shake;
+        }
+      } else {
+        shakeStartTime = 0; // Reset shake timer
       }
 
       renderer.render(scene, camera);
