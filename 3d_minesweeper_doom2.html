@@ -183,6 +183,14 @@
     let lastTime = 0;
     let deltaTime = 0;
 
+    // Global rotation variables
+    let targetRotationX = 0;
+    let targetRotationY = 0;
+    let currentRotationX = 0;
+    let currentRotationY = 0;
+    let autoRotate = true;
+    let userInteracted = false;
+
     // Doom-style colors
     const COLORS = {
       hidden: 0x333333, // Dark grey for hidden blocks
@@ -267,13 +275,7 @@
       let mouseDown = false;
       let mouseX = 0;
       let mouseY = 0;
-      let targetRotationX = 0;
-      let targetRotationY = 0;
-      let currentRotationX = 0;
-      let currentRotationY = 0;
       let keys = {};
-      let autoRotate = true;
-      let userInteracted = false;
       const cameraUpEpsilon = 0.000001; // Tolerance for camera.up switching at poles
 
       renderer.domElement.addEventListener('mousedown', (event) => {
@@ -530,6 +532,16 @@
       mineCount = totalMines;
       userInteracted = false;
       autoRotate = true;
+
+      // Reset rotation state to initial values
+      lastTime = 0;
+      deltaTime = 0;
+      targetRotationX = 0;
+      targetRotationY = 0;
+      currentRotationX = 0;
+      currentRotationY = 0;
+      autoRotate = true;
+      userInteracted = false;
 
       // Update UI
       document.getElementById('mineCount').textContent = mineCount;
