@@ -547,9 +547,9 @@
       // Clear scene
       while (scene.children.length > 0) {
         const child = scene.children[0];
-        scene.remove(child); // Odebrat objekt ze scény jako první
+        scene.remove(child); // Remove object from scene first
 
-        // Správné uvolnění zdrojů podle typu objektu
+        // Proper resource disposal based on object type
         if (child instanceof THREE.Mesh) {
           if (child.geometry) {
             child.geometry.dispose();
@@ -557,26 +557,26 @@
           if (child.material) {
             if (Array.isArray(child.material)) {
               child.material.forEach(material => {
-                if (material.map) { // Uvolnit texturu, pokud existuje
+                if (material.map) { // Dispose texture if it exists
                   material.map.dispose();
                 }
                 material.dispose();
               });
             } else {
-              if (child.material.map) { // Uvolnit texturu, pokud existuje
+              if (child.material.map) { // Dispose texture if it exists
                 child.material.map.dispose();
               }
               child.material.dispose();
             }
           }
         } else if (child instanceof THREE.Light) {
-          // Pro světla, která vrhají stíny, je třeba uvolnit jejich shadow map texturu
+          // For lights that cast shadows, dispose their shadow map texture
           if (child.shadow && child.shadow.map) {
             child.shadow.map.dispose();
           }
-          // Většina světel nemá vlastní .dispose() metodu
+          // Most lights don't have their own .dispose() method
         }
-        // Zde můžete přidat logiku pro další typy objektů, pokud je používáte
+        // Here you can add logic for other object types if you use them
       }
 
       // Re-add enhanced lights
@@ -603,7 +603,7 @@
       blueLight.position.set(10, 5, 10);
       scene.add(blueLight);
 
-      // Get settings (zbytek funkce newGame zůstává stejný)
+      // Get settings (rest of newGame function remains the same)
       const size = document.getElementById('sizeSelect').value;
       const difficulty = document.getElementById('difficultySelect').value;
 
