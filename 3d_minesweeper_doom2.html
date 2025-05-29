@@ -290,6 +290,21 @@
     let autoRotate = true;
     let userInteracted = false;
 
+    // Hover effect variables
+    let hoveredBlock = null;
+    let originalMaterial = null;
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2();
+
+    // Move cursor to edge of screen initially
+    function moveCursorToEdge() {
+      const event = new MouseEvent('mousemove', {
+        clientX: 0,
+        clientY: 0
+      });
+      document.dispatchEvent(event);
+    }
+
     // Doom-style colors
     const COLORS = {
       hidden: 0x333333, // Dark grey for hidden blocks
@@ -405,6 +420,9 @@
 
           mouseX = event.clientX;
           mouseY = event.clientY;
+        } else {
+          // Handle hover effect when not dragging
+          handleHover(event);
         }
       });
 
@@ -494,16 +512,115 @@
       updateRotation(0);
     }
 
-    function handleClick(event) {
+    function handleHover(event) {
       if (gameEnded) return;
-
-      const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
 
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
+
+      const meshes = [];
+      gameGrid.forEach(layer => {
+        layer.forEach(row => {
+          row.forEach(block => {
+            if (block.mesh && !block.isRevealed) meshes.push(block.mesh);
+          });
+        });
+      });
+
+      const intersects = raycaster.intersectObjects(meshes);
+
+      if (intersects.length > 0) {
+        const mesh = intersects[0].object;
+        const block = findBlockByMesh(mesh);
+
+        if (block && block !== hoveredBlock && !block.isRevealed) {
+          // Remove hover from previous block
+          removeHoverEffect();
+
+          // Apply hover to new block
+          applyHoverEffect(block);
+          hoveredBlock = block;
+          document.body.style.cursor = 'pointer';
+        }
+      } else {
+        // No intersection, remove hover effect
+        removeHoverEffect();
+        document.body.style.cursor = 'default';
+      }
+    }
+
+    function applyHoverEffect(block) {
+      if (!block.mesh || block.isRevealed) return;
+
+      // Store original material
+      originalMaterial = block.mesh.material;
+
+      // Create hover material with brighter color and glow
+      let hoverMaterial;
+      if (Array.isArray(originalMaterial)) {
+        hoverMaterial = originalMaterial.map(mat => {
+          return new THREE.MeshPhongMaterial({
+            color: block.isFlagged ? 0xffff88 : 0x666666,
+            shininess: 100,
+            specular: 0x888888,
+            emissive: block.isFlagged ? 0x444400 : 0x222222,
+            emissiveIntensity: 0.3,
+            map: mat.map
+          });
+        });
+      } else {
+        hoverMaterial = new THREE.MeshPhongMaterial({
+          color: block.isFlagged ? 0xffff88 : 0x666666,
+          shininess: 100,
+          specular: 0x888888,
+          emissive: block.isFlagged ? 0x444400 : 0x222222,
+          emissiveIntensity: 0.3
+        });
+      }
+
+      block.mesh.material = hoverMaterial;
+
+      // Add subtle scale effect
+      block.mesh.scale.set(1.05, 1.05, 1.05);
+    }
+
+    function removeHoverEffect() {
+      if (hoveredBlock && hoveredBlock.mesh && originalMaterial) {
+        // Only remove hover effect if block is not revealed
+        if (!hoveredBlock.isRevealed) {
+          // Restore original material
+          if (Array.isArray(hoveredBlock.mesh.material)) {
+            hoveredBlock.mesh.material.forEach(mat => {
+              if (mat.map) mat.map.dispose();
+              mat.dispose();
+            });
+          } else {
+            if (hoveredBlock.mesh.material.map) hoveredBlock.mesh.material.map.dispose();
+            hoveredBlock.mesh.material.dispose();
+          }
+
+          hoveredBlock.mesh.material = originalMaterial;
+          hoveredBlock.mesh.scale.set(1, 1, 1);
+        }
+
+        hoveredBlock = null;
+        originalMaterial = null;
+        document.body.style.cursor = 'default';
+      }
+    }
+
+    function handleClick(event) {
+      if (gameEnded) return;
+
+      const clickRaycaster = new THREE.Raycaster();
+      const clickMouse = new THREE.Vector2();
+
+      clickMouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      clickMouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      clickRaycaster.setFromCamera(clickMouse, camera);
 
       const meshes = [];
       gameGrid.forEach(layer => {
@@ -631,6 +748,21 @@
       mineCount = totalMines;
       userInteracted = false;
       autoRotate = true;
+
+      // Clear hover effects
+      removeHoverEffect();
+
+      // Move cursor to edge of screen
+      setTimeout(() => {
+        const canvas = renderer.domElement;
+        const rect = canvas.getBoundingClientRect();
+        const event = new MouseEvent('mousemove', {
+          clientX: rect.left - 10,
+          clientY: rect.top - 10,
+          bubbles: true
+        });
+        canvas.dispatchEvent(event);
+      }, 100);
 
       // Reset rotation state to initial values
       lastTime = 0;
@@ -1058,6 +1190,9 @@
     function endGame(won) {
       gameEnded = true;
       clearInterval(timerInterval);
+
+      // Clear hover effects when game ends
+      removeHoverEffect();
 
       const message = document.getElementById('message');
       if (won) {
