@@ -258,6 +258,7 @@
       let keys = {};
       let autoRotate = true;
       let userInteracted = false;
+      const cameraUpEpsilon = 0.000001; // Tolerance for camera.up switching at poles
 
       renderer.domElement.addEventListener('mousedown', (event) => {
         event.preventDefault();
@@ -344,6 +345,15 @@
         camera.position.x = radius * Math.sin(currentRotationY) * Math.cos(currentRotationX);
         camera.position.y = radius * Math.sin(currentRotationX);
         camera.position.z = radius * Math.cos(currentRotationY) * Math.cos(currentRotationX);
+
+        // Adjust camera.up based on vertical rotation to prevent flipping
+        const cosX = Math.cos(currentRotationX);
+        if (cosX < -cameraUpEpsilon) {
+          camera.up.set(0, -1, 0);
+        } else if (cosX > cameraUpEpsilon) {
+          camera.up.set(0, 1, 0);
+        }
+        // If cosX is within [-cameraUpEpsilon, cameraUpEpsilon], camera.up remains unchanged
 
         camera.lookAt(0, 0, 0);
         requestAnimationFrame(updateRotation);
