@@ -49,16 +49,12 @@
       font-weight: bold;
     }
 
-
-
     select {
       background: #330000;
       color: #ff0000;
       border: 2px solid #ff0000;
       padding: 5px;
       font-family: 'Courier New', monospace;
-      /* caret-color: transparent; */
-      /* Make the blinking text cursor transparent - moved to global rule */
     }
 
     #gameContainer {
@@ -115,12 +111,8 @@
       transition: all 0.3s ease;
     }
 
-    /* Hide the browser's default focus outline and text cursor */
     * {
       caret-color: transparent;
-    }
-
-    *:focus {
       outline: none;
     }
 
@@ -200,6 +192,138 @@
       font-weight: bold;
       margin-top: 10px;
     }
+
+    /* Hamburger Menu Styles */
+    .hamburger-menu {
+      display: none;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 150;
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid #ff0000;
+      border-radius: 5px;
+      padding: 10px;
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .hamburger-line {
+      width: 20px;
+      height: 2px;
+      background: #ff0000;
+      margin: 2px 0;
+      transition: 0.3s;
+    }
+
+    .hamburger-menu:hover .hamburger-line {
+      background: #ffff00;
+    }
+
+    .mobile-controls {
+      display: none;
+      position: absolute;
+      top: 60px;
+      right: 10px;
+      z-index: 140;
+      background: rgba(0, 0, 0, 0.95);
+      border: 2px solid #ff0000;
+      border-radius: 5px;
+      padding: 15px;
+      min-width: 200px;
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+    }
+
+    .mobile-controls.show {
+      display: block;
+    }
+
+    /* Mobile Responsive Design */
+    @media screen and (max-width: 768px) {
+      #ui {
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 10px;
+        font-size: 14px;
+        text-align: center;
+      }
+
+      #controls {
+        display: none;
+      }
+
+      .hamburger-menu {
+        display: flex;
+      }
+
+      .rules-container {
+        display: none;
+      }
+
+      #message {
+        font-size: 18px;
+        padding: 15px;
+        max-width: 80vw;
+      }
+    }
+
+    @media screen and (max-width: 480px) {
+      #ui {
+        padding: 8px;
+        font-size: 12px;
+      }
+
+      .mobile-controls {
+        right: 5px;
+        min-width: 180px;
+        padding: 12px;
+      }
+
+      .hamburger-menu {
+        top: 5px;
+        right: 5px;
+        padding: 8px;
+        width: 25px;
+        height: 25px;
+      }
+
+      .hamburger-line {
+        width: 15px;
+      }
+
+      #message {
+        font-size: 16px;
+        padding: 10px;
+        max-width: 90vw;
+      }
+    }
+
+    /* Touch-friendly improvements */
+    @media (hover: none) and (pointer: coarse) {
+      button {
+        padding: 12px 16px;
+        font-size: 14px;
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      select {
+        padding: 8px;
+        font-size: 14px;
+        min-height: 44px;
+      }
+
+      .rules-icon {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+      }
+    }
   </style>
 </head>
 
@@ -261,12 +385,48 @@
     </div>
   </div>
 
+  <!-- Hamburger Menu for Mobile -->
+  <div class="hamburger-menu" onclick="toggleMobileMenu()">
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+    <div class="hamburger-line"></div>
+  </div>
+
+  <!-- Mobile Controls Menu -->
+  <div class="mobile-controls" id="mobileControls">
+    <div class="doom-text" style="margin-bottom: 10px;">CONTROLS</div>
+    <div style="margin-bottom: 8px;">Size:</div>
+    <select id="sizeSelectMobile"
+      onchange="document.getElementById('sizeSelect').value = this.value; document.getElementById('sizeSelect').dispatchEvent(new Event('change'));">
+      <option value="small">Small (5x5x5)</option>
+      <option value="medium">Medium (7x7x7)</option>
+      <option value="large">Large (10x10x10)</option>
+    </select>
+    <br><br>
+    <div style="margin-bottom: 8px;">Difficulty:</div>
+    <select id="difficultySelectMobile"
+      onchange="document.getElementById('difficultySelect').value = this.value; document.getElementById('difficultySelect').dispatchEvent(new Event('change'));">
+      <option value="easy">Easy (10%)</option>
+      <option value="medium">Medium (15%)</option>
+      <option value="hard">Hard (20%)</option>
+    </select>
+    <br><br>
+    <button onclick="newGame(); toggleMobileMenu();">NEW GAME</button>
+    <br><br>
+    <div style="font-size: 11px;">
+      <div>Tap: Reveal</div>
+      <div>Long Press: Flag</div>
+      <div>Pinch: Zoom</div>
+      <div>Drag: Rotate</div>
+    </div>
+  </div>
+
   <div id="message"></div>
   <div id="gameContainer"></div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
-    let scene, camera, renderer, controls;
+    let scene, camera, renderer;
     let gameGrid = [];
     let gridSize = { x: 5, y: 5, z: 5 };
     let mineCount = 0;
@@ -276,14 +436,10 @@
     let startTime = 0;
     let timerInterval;
     let revealedCount = 0;
-    let particles = [];
     let explosionParticles = [];
 
-    // Time-based rotation variables
     let lastTime = 0;
     let deltaTime = 0;
-
-    // Global rotation variables
     let targetRotationX = 0;
     let targetRotationY = 0;
     let currentRotationX = 0;
@@ -291,20 +447,10 @@
     let autoRotate = true;
     let userInteracted = false;
 
-    // Hover effect variables
     let hoveredBlock = null;
     let originalMaterial = null;
     let raycaster = new THREE.Raycaster();
     let mouse = new THREE.Vector2();
-
-    // Move cursor to edge of screen initially
-    function moveCursorToEdge() {
-      const event = new MouseEvent('mousemove', {
-        clientX: 0,
-        clientY: 0
-      });
-      document.dispatchEvent(event);
-    }
 
     // Doom-style colors
     const COLORS = {
@@ -337,21 +483,24 @@
     }
 
     function init() {
-      // Scene setup
       scene = new THREE.Scene();
       scene.background = new THREE.Color(0x000000);
 
-      // Camera setup
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-      // Renderer setup
       renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       document.getElementById('gameContainer').appendChild(renderer.domElement);
 
-      // Enhanced Lighting - Doom style with effects
+      setupLighting();
+      setupControls();
+      newGame();
+      animate();
+    }
+
+    function setupLighting() {
       const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
       scene.add(ambientLight);
 
@@ -366,7 +515,6 @@
       pointLight.position.set(0, 15, 0);
       scene.add(pointLight);
 
-      // Add dynamic colored lights
       const redLight = new THREE.PointLight(0xff0000, 0.5, 50);
       redLight.position.set(-10, 5, -10);
       scene.add(redLight);
@@ -374,24 +522,15 @@
       const blueLight = new THREE.PointLight(0x0066ff, 0.5, 50);
       blueLight.position.set(10, 5, 10);
       scene.add(blueLight);
-
-      // Mouse controls
-      setupControls();
-
-      // Start game
-      newGame();
-
-      // Animation loop
-      animate();
     }
 
     function setupControls() {
-      document.body.style.cursor = 'default'; // Set default cursor
+      document.body.style.cursor = 'default';
       let mouseDown = false;
       let mouseX = 0;
       let mouseY = 0;
       let keys = {};
-      const cameraUpEpsilon = 0.000001; // Tolerance for camera.up switching at poles
+      const cameraUpEpsilon = 0.000001;
 
       renderer.domElement.addEventListener('mousedown', (event) => {
         event.preventDefault();
@@ -404,7 +543,7 @@
         if (event.button === 0 || event.button === 2) {
           handleClick(event);
         }
-        if (event.button === 0) { // Left mouse button for rotation
+        if (event.button === 0) {
           document.body.style.cursor = 'grabbing';
         }
       });
@@ -414,7 +553,6 @@
           const deltaX = event.clientX - mouseX;
           const deltaY = event.clientY - mouseY;
 
-          // Mouse sensitivity - consistent across different frame rates
           const mouseSensitivity = 0.006;
           targetRotationY -= deltaX * mouseSensitivity;
           targetRotationX += deltaY * mouseSensitivity;
@@ -422,15 +560,14 @@
           mouseX = event.clientX;
           mouseY = event.clientY;
         } else {
-          // Handle hover effect when not dragging
           handleHover(event);
         }
       });
 
       renderer.domElement.addEventListener('mouseup', (event) => {
         mouseDown = false;
-        if (event.button === 0) { // Left mouse button released
-          document.body.style.cursor = 'default'; // Revert to default, animate() will handle 'pointer' if needed
+        if (event.button === 0) {
+          document.body.style.cursor = 'default';
         }
       });
 
@@ -443,7 +580,6 @@
         event.preventDefault();
       });
 
-      // Keyboard controls
       document.addEventListener('keydown', (event) => {
         keys[event.code] = true;
         userInteracted = true;
@@ -454,42 +590,29 @@
         keys[event.code] = false;
       });
 
-      // Handle keyboard rotation - now time-based
       function handleKeyboardInput() {
-        const rotationSpeed = 2; // radians per second
-        const frameRotation = rotationSpeed * deltaTime;
+        const frameRotation = 2 * deltaTime;
 
-        if (keys['ArrowLeft']) {
-          targetRotationY += frameRotation; // Rotate left
-        }
-        if (keys['ArrowRight']) {
-          targetRotationY -= frameRotation; // Rotate right
-        }
-        if (keys['ArrowUp']) {
-          targetRotationX -= frameRotation;
-        }
-        if (keys['ArrowDown']) {
-          targetRotationX += frameRotation;
-        }
+        if (keys['ArrowLeft']) targetRotationY += frameRotation;
+        if (keys['ArrowRight']) targetRotationY -= frameRotation;
+        if (keys['ArrowUp']) targetRotationX -= frameRotation;
+        if (keys['ArrowDown']) targetRotationX += frameRotation;
       }
 
-      // Smooth rotation with delta time
       function updateRotation(currentTime) {
         if (lastTime === 0) lastTime = currentTime;
-        deltaTime = (currentTime - lastTime) / 1000; // Convert to seconds
+        deltaTime = (currentTime - lastTime) / 1000;
         lastTime = currentTime;
 
-        // Auto rotation when game starts - now time-based
         if (autoRotate && !userInteracted) {
-          const autoRotationSpeed = 0.5; // radians per second
+          const autoRotationSpeed = 0.5;
           targetRotationX += autoRotationSpeed * 0.6 * deltaTime;
           targetRotationY += autoRotationSpeed * 0.8 * deltaTime;
         }
 
         handleKeyboardInput();
 
-        // Smooth interpolation - now time-based
-        const smoothingFactor = 6.0; // Higher = faster smoothing
+        const smoothingFactor = 6.0;
         currentRotationX += (targetRotationX - currentRotationX) * smoothingFactor * deltaTime;
         currentRotationY += (targetRotationY - currentRotationY) * smoothingFactor * deltaTime;
 
@@ -498,14 +621,12 @@
         camera.position.y = radius * Math.sin(currentRotationX);
         camera.position.z = radius * Math.cos(currentRotationY) * Math.cos(currentRotationX);
 
-        // Adjust camera.up based on vertical rotation to prevent flipping
         const cosX = Math.cos(currentRotationX);
         if (cosX < -cameraUpEpsilon) {
           camera.up.set(0, -1, 0);
         } else if (cosX > cameraUpEpsilon) {
           camera.up.set(0, 1, 0);
         }
-        // If cosX is within [-cameraUpEpsilon, cameraUpEpsilon], camera.up remains unchanged
 
         camera.lookAt(0, 0, 0);
         requestAnimationFrame(updateRotation);
@@ -555,53 +676,31 @@
     function applyHoverEffect(block) {
       if (!block.mesh || block.isRevealed) return;
 
-      // Store original material
       originalMaterial = block.mesh.material;
 
-      // Create hover material with brighter color and glow
+      const hoverProps = {
+        color: block.isFlagged ? 0xffff88 : 0x666666,
+        shininess: 100,
+        specular: 0x888888,
+        emissive: block.isFlagged ? 0x444400 : 0x222222,
+        emissiveIntensity: 0.3
+      };
+
       let hoverMaterial;
       if (Array.isArray(originalMaterial)) {
-        hoverMaterial = originalMaterial.map(mat => {
-          return new THREE.MeshPhongMaterial({
-            color: block.isFlagged ? 0xffff88 : 0x666666,
-            shininess: 100,
-            specular: 0x888888,
-            emissive: block.isFlagged ? 0x444400 : 0x222222,
-            emissiveIntensity: 0.3,
-            map: mat.map
-          });
-        });
+        hoverMaterial = originalMaterial.map(mat => new THREE.MeshPhongMaterial({ ...hoverProps, map: mat.map }));
       } else {
-        hoverMaterial = new THREE.MeshPhongMaterial({
-          color: block.isFlagged ? 0xffff88 : 0x666666,
-          shininess: 100,
-          specular: 0x888888,
-          emissive: block.isFlagged ? 0x444400 : 0x222222,
-          emissiveIntensity: 0.3
-        });
+        hoverMaterial = new THREE.MeshPhongMaterial(hoverProps);
       }
 
       block.mesh.material = hoverMaterial;
-
-      // Add subtle scale effect
       block.mesh.scale.set(1.05, 1.05, 1.05);
     }
 
     function removeHoverEffect() {
       if (hoveredBlock && hoveredBlock.mesh && originalMaterial) {
-        // Only remove hover effect if block is not revealed and not flagged
         if (!hoveredBlock.isRevealed && !hoveredBlock.isFlagged) {
-          // Restore original material
-          if (Array.isArray(hoveredBlock.mesh.material)) {
-            hoveredBlock.mesh.material.forEach(mat => {
-              if (mat.map) mat.map.dispose();
-              mat.dispose();
-            });
-          } else {
-            if (hoveredBlock.mesh.material.map) hoveredBlock.mesh.material.map.dispose();
-            hoveredBlock.mesh.material.dispose();
-          }
-
+          disposeMaterial(hoveredBlock.mesh.material);
           hoveredBlock.mesh.material = originalMaterial;
           hoveredBlock.mesh.scale.set(1, 1, 1);
         }
@@ -609,6 +708,18 @@
         hoveredBlock = null;
         originalMaterial = null;
         document.body.style.cursor = 'default';
+      }
+    }
+
+    function disposeMaterial(material) {
+      if (Array.isArray(material)) {
+        material.forEach(mat => {
+          if (mat.map) mat.map.dispose();
+          mat.dispose();
+        });
+      } else {
+        if (material.map) material.map.dispose();
+        material.dispose();
       }
     }
 
@@ -662,143 +773,69 @@
     }
 
     function newGame() {
-      // Clear scene
-      while (scene.children.length > 0) {
-        const child = scene.children[0];
-        scene.remove(child); // Remove object from scene first
+      clearScene();
+      setupLighting();
 
-        // Proper resource disposal based on object type
-        if (child instanceof THREE.Mesh) {
-          if (child.geometry) {
-            child.geometry.dispose();
-          }
-          if (child.material) {
-            if (Array.isArray(child.material)) {
-              child.material.forEach(material => {
-                if (material.map) { // Dispose texture if it exists
-                  material.map.dispose();
-                }
-                material.dispose();
-              });
-            } else {
-              if (child.material.map) { // Dispose texture if it exists
-                child.material.map.dispose();
-              }
-              child.material.dispose();
-            }
-          }
-        } else if (child instanceof THREE.Light) {
-          // For lights that cast shadows, dispose their shadow map texture
-          if (child.shadow && child.shadow.map) {
-            child.shadow.map.dispose();
-          }
-          // Most lights don't have their own .dispose() method
-        }
-        // Here you can add logic for other object types if you use them
-      }
-
-      // Re-add enhanced lights
-      const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
-      scene.add(ambientLight);
-
-      const directionalLight = new THREE.DirectionalLight(0xff0000, 1.0);
-      directionalLight.position.set(10, 10, 10);
-      directionalLight.castShadow = true;
-      directionalLight.shadow.mapSize.width = 2048;
-      directionalLight.shadow.mapSize.height = 2048;
-      scene.add(directionalLight);
-
-      const pointLight = new THREE.PointLight(0xffaa00, 0.8, 100);
-      pointLight.position.set(0, 15, 0);
-      scene.add(pointLight);
-
-      // Add dynamic colored lights
-      const redLight = new THREE.PointLight(0xff0000, 0.5, 50);
-      redLight.position.set(-10, 5, -10);
-      scene.add(redLight);
-
-      const blueLight = new THREE.PointLight(0x0066ff, 0.5, 50);
-      blueLight.position.set(10, 5, 10);
-      scene.add(blueLight);
-
-      // Get settings (rest of newGame function remains the same)
       const size = document.getElementById('sizeSelect').value;
       const difficulty = document.getElementById('difficultySelect').value;
 
-      // Set grid size
-      switch (size) {
-        case 'small': gridSize = { x: 5, y: 5, z: 5 }; break;
-        case 'medium': gridSize = { x: 7, y: 7, z: 7 }; break;
-        case 'large': gridSize = { x: 10, y: 10, z: 10 }; break;
-      }
+      const sizeMap = { small: { x: 5, y: 5, z: 5 }, medium: { x: 7, y: 7, z: 7 }, large: { x: 10, y: 10, z: 10 } };
+      gridSize = sizeMap[size];
 
-      // Calculate mine count
-      const totalBlocks = gridSize.x * gridSize.y * gridSize.z;
-      let minePercentage;
-      switch (difficulty) {
-        case 'easy': minePercentage = 0.1; break;
-        case 'medium': minePercentage = 0.15; break;
-        case 'hard': minePercentage = 0.2; break;
-      }
-      totalMines = Math.floor(totalBlocks * minePercentage);
+      const difficultyMap = { easy: 0.1, medium: 0.15, hard: 0.2 };
+      totalMines = Math.floor(gridSize.x * gridSize.y * gridSize.z * difficultyMap[difficulty]);
 
-      // Reset game state
+      resetGameState();
+      updateUI(size, difficulty);
+      initializeGrid();
+      placeMines();
+      calculateNumbers();
+      createMeshes();
+
+      const maxDim = Math.max(gridSize.x, gridSize.y, gridSize.z);
+      camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
+      camera.lookAt(0, 0, 0);
+    }
+
+    function clearScene() {
+      while (scene.children.length > 0) {
+        const child = scene.children[0];
+        scene.remove(child);
+
+        if (child instanceof THREE.Mesh) {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) disposeMaterial(child.material);
+        } else if (child instanceof THREE.Light && child.shadow && child.shadow.map) {
+          child.shadow.map.dispose();
+        }
+      }
+    }
+
+    function resetGameState() {
       gameStarted = false;
       gameEnded = false;
       revealedCount = 0;
       mineCount = totalMines;
       userInteracted = false;
       autoRotate = true;
-
-      // Clear hover effects
       removeHoverEffect();
 
-      // Move cursor to edge of screen
-      setTimeout(() => {
-        const canvas = renderer.domElement;
-        const rect = canvas.getBoundingClientRect();
-        const event = new MouseEvent('mousemove', {
-          clientX: rect.left - 10,
-          clientY: rect.top - 10,
-          bubbles: true
-        });
-        canvas.dispatchEvent(event);
-      }, 100);
-
-      // Reset rotation state to initial values
       lastTime = 0;
       deltaTime = 0;
       targetRotationX = 0;
       targetRotationY = 0;
       currentRotationX = 0;
       currentRotationY = 0;
-      autoRotate = true;
-      userInteracted = false;
 
-      // Update UI
-      document.getElementById('mineCount').textContent = mineCount;
-      document.getElementById('timer').textContent = '0';
-      document.getElementById('size').textContent = size === 'small' ? 'Small' : size === 'medium' ? 'Medium' : 'Large';
-      document.getElementById('difficulty').textContent = difficulty === 'easy' ? 'Easy' : difficulty === 'medium' ? 'Medium' : 'Hard';
-
-      // Clear timer
-      if (timerInterval) {
-        clearInterval(timerInterval);
-      }
-
-      // Hide message
+      if (timerInterval) clearInterval(timerInterval);
       document.getElementById('message').style.display = 'none';
+    }
 
-      // Initialize grid
-      initializeGrid();
-      placeMines();
-      calculateNumbers();
-      createMeshes();
+    function updateUI(size, difficulty) {
 
-      // Position camera
-      const maxDim = Math.max(gridSize.x, gridSize.y, gridSize.z);
-      camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
-      camera.lookAt(0, 0, 0);
+      document.getElementById('timer').textContent = '0';
+      document.getElementById('size').textContent = size.charAt(0).toUpperCase() + size.slice(1);
+      document.getElementById('difficulty').textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
     }
 
     function initializeGrid() {
@@ -866,20 +903,19 @@
 
     function createMeshes() {
       const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-      const spacing = 1.3; // Increased spacing between blocks
+      const spacing = 1.3;
+      const material = new THREE.MeshPhongMaterial({
+        color: COLORS.hidden,
+        shininess: 50,
+        specular: 0x444444,
+        emissive: 0x111111
+      });
 
       for (let x = 0; x < gridSize.x; x++) {
         for (let y = 0; y < gridSize.y; y++) {
           for (let z = 0; z < gridSize.z; z++) {
             const block = gameGrid[x][y][z];
-            const material = new THREE.MeshPhongMaterial({
-              color: COLORS.hidden,
-              shininess: 50,
-              specular: 0x444444,
-              emissive: 0x111111
-            });
-
-            block.mesh = new THREE.Mesh(geometry, material);
+            block.mesh = new THREE.Mesh(geometry, material.clone());
             block.mesh.position.set(
               (x - gridSize.x / 2 + 0.5) * spacing,
               (y - gridSize.y / 2 + 0.5) * spacing,
@@ -887,7 +923,6 @@
             );
             block.mesh.castShadow = true;
             block.mesh.receiveShadow = true;
-
             scene.add(block.mesh);
           }
         }
@@ -916,18 +951,12 @@
           // Show number on all faces
           addNumberToBlock(block);
         } else {
-          // Remove the block completely for empty spaces
           if (block.mesh) {
             scene.remove(block.mesh);
             if (block.mesh.geometry) block.mesh.geometry.dispose();
-            if (Array.isArray(block.mesh.material)) {
-              block.mesh.material.forEach(mat => mat.dispose());
-            } else {
-              block.mesh.material.dispose();
-            }
+            disposeMaterial(block.mesh.material);
             block.mesh = null;
           }
-          // Auto-reveal neighbors
           revealNeighbors(block);
         }
 
@@ -939,74 +968,53 @@
     }
 
     function addNumberToBlock(block) {
-      // Create texture with number
+      const texture = createNumberTexture(block.neighborMines);
+      const materials = Array(6).fill().map(() => new THREE.MeshPhongMaterial({
+        map: texture.clone(),
+        shininess: 30,
+        emissive: new THREE.Color(0x111111),
+        emissiveIntensity: 0.3
+      }));
+
+      replaceMesh(block, materials);
+    }
+
+    function createNumberTexture(number) {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       canvas.width = 128;
       canvas.height = 128;
 
-      // Dark background
       context.fillStyle = '#2a2a2a';
       context.fillRect(0, 0, 128, 128);
 
-      // Add border
       context.strokeStyle = '#555555';
       context.lineWidth = 4;
       context.strokeRect(2, 2, 124, 124);
 
-      // Draw number
-      context.fillStyle = getNumberColor(block.neighborMines);
+      context.fillStyle = getNumberColor(number);
       context.font = 'bold 70px Courier New';
       context.textAlign = 'center';
       context.textBaseline = 'middle';
-      context.fillText(block.neighborMines.toString(), 64, 64);
+      context.fillText(number.toString(), 64, 64);
 
       const texture = new THREE.CanvasTexture(canvas);
       texture.needsUpdate = true;
-
-      // Create materials for all 6 faces with the same texture
-      const materials = [];
-      for (let i = 0; i < 6; i++) {
-        materials.push(new THREE.MeshPhongMaterial({
-          map: texture.clone(),
-          transparent: false,
-          shininess: 30,
-          emissive: new THREE.Color(0x111111),
-          emissiveIntensity: 0.3
-        }));
-      }
-
-      // Remove the old mesh safely
-      if (block.mesh) {
-        scene.remove(block.mesh);
-        if (block.mesh.geometry) block.mesh.geometry.dispose();
-        if (Array.isArray(block.mesh.material)) {
-          block.mesh.material.forEach(mat => {
-            if (mat.map) mat.map.dispose();
-            mat.dispose();
-          });
-        } else {
-          if (block.mesh.material.map) block.mesh.material.map.dispose();
-          block.mesh.material.dispose();
-        }
-      }
-
-      // Create new mesh with number on all faces
-      const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-      const spacing = 1.3;
-      block.mesh = new THREE.Mesh(geometry, materials);
-      block.mesh.position.set(
-        (block.x - gridSize.x / 2 + 0.5) * spacing,
-        (block.y - gridSize.y / 2 + 0.5) * spacing,
-        (block.z - gridSize.z / 2 + 0.5) * spacing
-      );
-      block.mesh.castShadow = true;
-      block.mesh.receiveShadow = true;
-
-      scene.add(block.mesh);
+      return texture;
     }
 
     function createMineBlock(block) {
+      const texture = createMineTexture();
+      const materials = Array(6).fill().map(() => new THREE.MeshPhongMaterial({
+        map: texture.clone(),
+        shininess: 20,
+        emissive: new THREE.Color(0x220000)
+      }));
+
+      replaceMesh(block, materials);
+    }
+
+    function createMineTexture() {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       canvas.width = 128;
@@ -1022,28 +1030,14 @@
 
       const texture = new THREE.CanvasTexture(canvas);
       texture.needsUpdate = true;
+      return texture;
+    }
 
-      const materials = [];
-      for (let i = 0; i < 6; i++) {
-        materials.push(new THREE.MeshPhongMaterial({
-          map: texture.clone(),
-          shininess: 20,
-          emissive: new THREE.Color(0x220000)
-        }));
-      }
-
+    function replaceMesh(block, materials) {
       if (block.mesh) {
         scene.remove(block.mesh);
         if (block.mesh.geometry) block.mesh.geometry.dispose();
-        if (Array.isArray(block.mesh.material)) {
-          block.mesh.material.forEach(mat => {
-            if (mat.map) mat.map.dispose();
-            mat.dispose();
-          });
-        } else {
-          if (block.mesh.material.map) block.mesh.material.map.dispose();
-          block.mesh.material.dispose();
-        }
+        disposeMaterial(block.mesh.material);
       }
 
       const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
@@ -1054,7 +1048,8 @@
         (block.y - gridSize.y / 2 + 0.5) * spacing,
         (block.z - gridSize.z / 2 + 0.5) * spacing
       );
-
+      block.mesh.castShadow = true;
+      block.mesh.receiveShadow = true;
       scene.add(block.mesh);
     }
 
@@ -1089,110 +1084,57 @@
       block.isFlagged = !block.isFlagged;
 
       if (block.isFlagged) {
-        // Create flag texture for all faces
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        canvas.width = 128;
-        canvas.height = 128;
-
-        context.fillStyle = '#ffff00';
-        context.fillRect(0, 0, 128, 128);
-
-        // Add border
-        context.strokeStyle = '#cc8800';
-        context.lineWidth = 4;
-        context.strokeRect(2, 2, 124, 124);
-
-        context.fillStyle = '#ff0000';
-        context.font = 'bold 80px Courier New';
-        context.textAlign = 'center';
-        context.textBaseline = 'middle';
-        context.fillText('F', 64, 64);
-
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.needsUpdate = true;
-
-        const materials = [];
-        for (let i = 0; i < 6; i++) {
-          materials.push(new THREE.MeshPhongMaterial({
-            map: texture.clone(),
-            shininess: 40,
-            emissive: new THREE.Color(0x221100)
-          }));
-        }
-
-        if (block.mesh) {
-          scene.remove(block.mesh);
-          if (block.mesh.geometry) block.mesh.geometry.dispose();
-          if (Array.isArray(block.mesh.material)) {
-            block.mesh.material.forEach(mat => {
-              if (mat.map) mat.map.dispose();
-              mat.dispose();
-            });
-          } else {
-            if (block.mesh.material.map) block.mesh.material.map.dispose();
-            block.mesh.material.dispose();
-          }
-        }
-
-        const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-        const spacing = 1.3;
-        block.mesh = new THREE.Mesh(geometry, materials);
-        block.mesh.position.set(
-          (block.x - gridSize.x / 2 + 0.5) * spacing,
-          (block.y - gridSize.y / 2 + 0.5) * spacing,
-          (block.z - gridSize.z / 2 + 0.5) * spacing
-        );
-        block.mesh.castShadow = true;
-        block.mesh.receiveShadow = true;
-
-        scene.add(block.mesh);
+        const texture = createFlagTexture();
+        const materials = Array(6).fill().map(() => new THREE.MeshPhongMaterial({
+          map: texture.clone(),
+          shininess: 40,
+          emissive: new THREE.Color(0x221100)
+        }));
+        replaceMesh(block, materials);
         mineCount--;
       } else {
-        // Restore original hidden block
-        if (block.mesh) {
-          scene.remove(block.mesh);
-          if (block.mesh.geometry) block.mesh.geometry.dispose();
-          if (Array.isArray(block.mesh.material)) {
-            block.mesh.material.forEach(mat => {
-              if (mat.map) mat.map.dispose();
-              mat.dispose();
-            });
-          } else {
-            if (block.mesh.material.map) block.mesh.material.map.dispose();
-            block.mesh.material.dispose();
-          }
-        }
-
-        const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-        const spacing = 1.3;
         const material = new THREE.MeshPhongMaterial({
           color: COLORS.hidden,
           shininess: 50,
           specular: 0x444444,
           emissive: 0x111111
         });
-        block.mesh = new THREE.Mesh(geometry, material);
-        block.mesh.position.set(
-          (block.x - gridSize.x / 2 + 0.5) * spacing,
-          (block.y - gridSize.y / 2 + 0.5) * spacing,
-          (block.z - gridSize.z / 2 + 0.5) * spacing
-        );
-        block.mesh.castShadow = true;
-        block.mesh.receiveShadow = true;
-
-        scene.add(block.mesh);
+        replaceMesh(block, material);
         mineCount++;
       }
 
-      document.getElementById('mineCount').textContent = mineCount;
+
+    }
+
+    function createFlagTexture() {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = 128;
+      canvas.height = 128;
+
+      context.fillStyle = '#ffff00';
+      context.fillRect(0, 0, 128, 128);
+
+      context.strokeStyle = '#cc8800';
+      context.lineWidth = 4;
+      context.strokeRect(2, 2, 124, 124);
+
+      context.fillStyle = '#ff0000';
+      context.font = 'bold 80px Courier New';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText('F', 64, 64);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+
+
     }
 
     function endGame(won) {
       gameEnded = true;
       clearInterval(timerInterval);
-
-      // Clear hover effects when game ends
       removeHoverEffect();
 
       const message = document.getElementById('message');
@@ -1203,21 +1145,23 @@
       } else {
         message.innerHTML = '<div class="doom-text">GAME OVER!</div><div>Mine exploded!</div>';
         message.style.color = '#ff0000';
+        revealAllMines();
+      }
 
-        // Reveal all mines with mine symbol on all faces
-        for (let x = 0; x < gridSize.x; x++) {
-          for (let y = 0; y < gridSize.y; y++) {
-            for (let z = 0; z < gridSize.z; z++) {
-              const block = gameGrid[x][y][z];
-              if (block.isMine && !block.isRevealed) {
-                createMineBlock(block);
-              }
+      message.style.display = 'block';
+    }
+
+    function revealAllMines() {
+      for (let x = 0; x < gridSize.x; x++) {
+        for (let y = 0; y < gridSize.y; y++) {
+          for (let z = 0; z < gridSize.z; z++) {
+            const block = gameGrid[x][y][z];
+            if (block.isMine && !block.isRevealed) {
+              createMineBlock(block);
             }
           }
         }
       }
-
-      message.style.display = 'block';
     }
 
     function createVictoryEffect() {
@@ -1307,25 +1251,57 @@
       requestAnimationFrame(animate);
       updateParticles();
 
-      // Add subtle camera shake effect when game is over
       if (gameEnded && explosionParticles.length > 0) {
-        camera.position.x += (Math.random() - 0.5) * 0.1;
-        camera.position.y += (Math.random() - 0.5) * 0.1;
-        camera.position.z += (Math.random() - 0.5) * 0.1;
+        const shake = 0.1;
+        camera.position.x += (Math.random() - 0.5) * shake;
+        camera.position.y += (Math.random() - 0.5) * shake;
+        camera.position.z += (Math.random() - 0.5) * shake;
       }
 
       renderer.render(scene, camera);
     }
 
-    // Handle window resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // Initialize game
+    // Mobile menu toggle function
+    function toggleMobileMenu() {
+      const mobileControls = document.getElementById('mobileControls');
+      mobileControls.classList.toggle('show');
+    }
+
+    // Synchronize mobile and desktop controls
+    function syncControls() {
+      const sizeSelect = document.getElementById('sizeSelect');
+      const difficultySelect = document.getElementById('difficultySelect');
+      const sizeSelectMobile = document.getElementById('sizeSelectMobile');
+      const difficultySelectMobile = document.getElementById('difficultySelectMobile');
+
+      // Sync from desktop to mobile
+      sizeSelect.addEventListener('change', () => {
+        sizeSelectMobile.value = sizeSelect.value;
+      });
+
+      difficultySelect.addEventListener('change', () => {
+        difficultySelectMobile.value = difficultySelect.value;
+      });
+
+      // Close mobile menu when clicking outside
+      document.addEventListener('click', (event) => {
+        const mobileControls = document.getElementById('mobileControls');
+        const hamburgerMenu = document.querySelector('.hamburger-menu');
+
+        if (!mobileControls.contains(event.target) && !hamburgerMenu.contains(event.target)) {
+          mobileControls.classList.remove('show');
+        }
+      });
+    }
+
     init();
+    syncControls();
   </script>
 
   <div
