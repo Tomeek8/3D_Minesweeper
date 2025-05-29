@@ -31,14 +31,15 @@ Here are some screenshots of the game in action:
 ![Gameplay Screenshot 1](screenshots/gameplay1.png)
 _Caption: Navigating the 3D minefield._
 
-![Gameplay Screenshot 2](screenshots/gameplay2.png)
-_Caption: Numbered blocks indicating nearby mines._
-
-![Gameplay Screenshot 3](screenshots/gameplay3.png)
+![Gameplay Screenshot 2](screenshots/gameplay3.png)
 _Caption: Would you like the hard mode? 💪_
 
-![Gameplay Screenshot 4](screenshots/gameplay4.png)
+![Gameplay Screenshot 3](screenshots/gameplay4.png)
 _Caption: A tense moment before revealing the last block._
+
+![Gameplay Screenshot 4](screenshots/gameplay5.png)
+_It’s a bit like Cube 💀_
+
 
 ## How to Run
 
