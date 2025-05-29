@@ -181,18 +181,18 @@
 
     // Doom-style colors
     const COLORS = {
-      hidden: 0x333333,
-      revealed: 0x666666,
-      mine: 0xff0000,
-      flag: 0xffff00,
-      number1: 0x0000ff,
-      number2: 0x00ff00,
-      number3: 0xff0000,
-      number4: 0x800080,
-      number5: 0x800000,
-      number6: 0x008080,
-      number7: 0x000000,
-      number8: 0x808080
+      hidden: 0x333333, // Dark grey for hidden blocks
+      revealed: 0x555555, // Lighter grey for revealed empty blocks
+      mine: 0xff0000,     // Bright red for mines
+      flag: 0xffff00,     // Bright yellow for flags
+      number1: 0x00ffff, // Neon Cyan
+      number2: 0x00ff00, // Neon Green
+      number3: 0xff00ff, // Neon Magenta
+      number4: 0xff9900, // Neon Orange
+      number5: 0x33ccff, // Neon Sky Blue
+      number6: 0xff33cc, // Neon Pink
+      number7: 0xccff33, // Neon Lime Green
+      number8: 0xcccccc  // Light Grey (for contrast if needed, or another neon)
     };
 
     class Block {
@@ -259,6 +259,7 @@
     }
 
     function setupControls() {
+      document.body.style.cursor = 'default'; // Set default cursor
       let mouseDown = false;
       let mouseX = 0;
       let mouseY = 0;
@@ -282,6 +283,9 @@
         if (event.button === 0 || event.button === 2) {
           handleClick(event);
         }
+        if (event.button === 0) { // Left mouse button for rotation
+          document.body.style.cursor = 'grabbing';
+        }
       });
 
       renderer.domElement.addEventListener('mousemove', (event) => {
@@ -289,7 +293,7 @@
           const deltaX = event.clientX - mouseX;
           const deltaY = event.clientY - mouseY;
 
-          targetRotationY += deltaX * 0.01; // Corrected horizontal rotation direction
+          targetRotationY -= deltaX * 0.01; // Reverted to original correct direction
           targetRotationX += deltaY * 0.01;
 
           mouseX = event.clientX;
@@ -297,8 +301,11 @@
         }
       });
 
-      renderer.domElement.addEventListener('mouseup', () => {
+      renderer.domElement.addEventListener('mouseup', (event) => {
         mouseDown = false;
+        if (event.button === 0) { // Left mouse button released
+          document.body.style.cursor = 'default'; // Revert to default, animate() will handle 'pointer' if needed
+        }
       });
 
       renderer.domElement.addEventListener('wheel', (event) => {
@@ -323,7 +330,7 @@
 
       // Handle keyboard rotation
       function handleKeyboardInput() {
-        const rotationSpeed = 0.08;
+        const rotationSpeed = 0.25;
 
         if (keys['ArrowLeft']) {
           targetRotationY += rotationSpeed; // Rotate left
