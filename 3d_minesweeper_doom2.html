@@ -289,7 +289,7 @@
           const deltaX = event.clientX - mouseX;
           const deltaY = event.clientY - mouseY;
 
-          targetRotationY -= deltaX * 0.01; // Fixed horizontal rotation direction
+          targetRotationY += deltaX * 0.01; // Corrected horizontal rotation direction
           targetRotationX += deltaY * 0.01;
 
           mouseX = event.clientX;
@@ -326,10 +326,10 @@
         const rotationSpeed = 0.08;
 
         if (keys['ArrowLeft']) {
-          targetRotationY -= rotationSpeed;
+          targetRotationY += rotationSpeed; // Rotate left
         }
         if (keys['ArrowRight']) {
-          targetRotationY += rotationSpeed;
+          targetRotationY -= rotationSpeed; // Rotate right
         }
         if (keys['ArrowUp']) {
           targetRotationX -= rotationSpeed;
