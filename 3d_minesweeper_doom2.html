@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Minesweeper - Doom Style</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(45deg, #1a0000, #330000);
+      font-family: 'Courier New', monospace;
+      color: #ff0000;
+      overflow: hidden;
+    }
+
+    #ui {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border: 2px solid #ff0000;
+      border-radius: 5px;
+    }
+
+    #controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border: 2px solid #ff0000;
+      border-radius: 5px;
+      text-align: center;
+    }
+
+    button {
+      background: #330000;
+      color: #ff0000;
+      border: 2px solid #ff0000;
+      padding: 8px 12px;
+      margin: 2px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+    }
+
+
+
+    select {
+      background: #330000;
+      color: #ff0000;
+      border: 2px solid #ff0000;
+      padding: 5px;
+      font-family: 'Courier New', monospace;
+    }
+
+    #gameContainer {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .doom-text {
+      color: #ff0000;
+      text-shadow: 2px 2px 4px #000000;
+      font-weight: bold;
+    }
+
+    #message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.9);
+      padding: 20px;
+      border: 3px solid #ff0000;
+      border-radius: 10px;
+      display: none;
+      z-index: 200;
+      box-shadow: 0 0 20px #ff0000, inset 0 0 20px rgba(255, 0, 0, 0.3);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        box-shadow: 0 0 20px #ff0000, inset 0 0 20px rgba(255, 0, 0, 0.3);
+      }
+
+      50% {
+        box-shadow: 0 0 40px #ff0000, inset 0 0 30px rgba(255, 0, 0, 0.5);
+      }
+    }
+
+    #ui,
+    #controls {
+      box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+    }
+
+    button:hover {
+      background: #550000;
+      color: #ffff00;
+      box-shadow: 0 0 10px #ffff00;
+      transition: all 0.3s ease;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="ui">
+    <div class="doom-text">3D MINESWEEPER</div>
+    <div>Mines: <span id="mineCount">0</span></div>
+    <div>Time: <span id="timer">0</span>s</div>
+    <div>Difficulty: <span id="difficulty">Easy</span></div>
+    <div>Size: <span id="size">Small</span></div>
+  </div>
+
+  <div id="controls">
+    <div class="doom-text">CONTROLS</div>
+    <div>Size:</div>
+    <select id="sizeSelect">
+      <option value="small">Small (5x5x5)</option>
+      <option value="medium">Medium (7x7x7)</option>
+      <option value="large">Large (10x10x10)</option>
+    </select>
+    <br><br>
+    <div>Difficulty:</div>
+    <select id="difficultySelect">
+      <option value="easy">Easy (10%)</option>
+      <option value="medium">Medium (15%)</option>
+      <option value="hard">Hard (20%)</option>
+    </select>
+    <br><br>
+    <button onclick="newGame()">NEW GAME</button>
+    <br><br>
+    <div style="font-size: 12px;">
+      <div>Left Click: Reveal</div>
+      <div>Right Click: Flag</div>
+      <div>Mouse Wheel: Zoom</div>
+      <div>Drag: Rotate</div>
+    </div>
+  </div>
+
+  <div id="message"></div>
+  <div id="gameContainer"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    let scene, camera, renderer, controls;
+    let gameGrid = [];
+    let gridSize = { x: 5, y: 5, z: 5 };
+    let mineCount = 0;
+    let totalMines = 0;
+    let gameStarted = false;
+    let gameEnded = false;
+    let startTime = 0;
+    let timerInterval;
+    let revealedCount = 0;
+    let particles = [];
+    let explosionParticles = [];
+
+    // Doom-style colors
+    const COLORS = {
+      hidden: 0x333333,
+      revealed: 0x666666,
+      mine: 0xff0000,
+      flag: 0xffff00,
+      number1: 0x0000ff,
+      number2: 0x00ff00,
+      number3: 0xff0000,
+      number4: 0x800080,
+      number5: 0x800000,
+      number6: 0x008080,
+      number7: 0x000000,
+      number8: 0x808080
+    };
+
+    class Block {
+      constructor(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.isMine = false;
+        this.isRevealed = false;
+        this.isFlagged = false;
+        this.neighborMines = 0;
+        this.mesh = null;
+        this.textMesh = null;
+      }
+    }
+
+    function init() {
+      // Scene setup
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x000000);
+
+      // Camera setup
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+      // Renderer setup
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.getElementById('gameContainer').appendChild(renderer.domElement);
+
+      // Enhanced Lighting - Doom style with effects
+      const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xff0000, 1.0);
+      directionalLight.position.set(10, 10, 10);
+      directionalLight.castShadow = true;
+      directionalLight.shadow.mapSize.width = 2048;
+      directionalLight.shadow.mapSize.height = 2048;
+      scene.add(directionalLight);
+
+      const pointLight = new THREE.PointLight(0xffaa00, 0.8, 100);
+      pointLight.position.set(0, 15, 0);
+      scene.add(pointLight);
+
+      // Add dynamic colored lights
+      const redLight = new THREE.PointLight(0xff0000, 0.5, 50);
+      redLight.position.set(-10, 5, -10);
+      scene.add(redLight);
+
+      const blueLight = new THREE.PointLight(0x0066ff, 0.5, 50);
+      blueLight.position.set(10, 5, 10);
+      scene.add(blueLight);
+
+      // Mouse controls
+      setupControls();
+
+      // Start game
+      newGame();
+
+      // Animation loop
+      animate();
+    }
+
+    function setupControls() {
+      let mouseDown = false;
+      let mouseX = 0;
+      let mouseY = 0;
+      let targetRotationX = 0;
+      let targetRotationY = 0;
+      let currentRotationX = 0;
+      let currentRotationY = 0;
+
+      renderer.domElement.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+        mouseDown = true;
+        mouseX = event.clientX;
+        mouseY = event.clientY;
+
+        if (event.button === 0 || event.button === 2) {
+          handleClick(event);
+        }
+      });
+
+      renderer.domElement.addEventListener('mousemove', (event) => {
+        if (mouseDown) {
+          const deltaX = event.clientX - mouseX;
+          const deltaY = event.clientY - mouseY;
+
+          targetRotationY += deltaX * 0.01;
+          targetRotationX += deltaY * 0.01;
+
+          mouseX = event.clientX;
+          mouseY = event.clientY;
+        }
+      });
+
+      renderer.domElement.addEventListener('mouseup', () => {
+        mouseDown = false;
+      });
+
+      renderer.domElement.addEventListener('wheel', (event) => {
+        event.preventDefault();
+        camera.position.multiplyScalar(event.deltaY > 0 ? 1.1 : 0.9);
+      });
+
+      renderer.domElement.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+      });
+
+      // Smooth rotation
+      function updateRotation() {
+        currentRotationX += (targetRotationX - currentRotationX) * 0.1;
+        currentRotationY += (targetRotationY - currentRotationY) * 0.1;
+
+        const radius = camera.position.length();
+        camera.position.x = radius * Math.sin(currentRotationY) * Math.cos(currentRotationX);
+        camera.position.y = radius * Math.sin(currentRotationX);
+        camera.position.z = radius * Math.cos(currentRotationY) * Math.cos(currentRotationX);
+
+        camera.lookAt(0, 0, 0);
+        requestAnimationFrame(updateRotation);
+      }
+      updateRotation();
+    }
+
+    function handleClick(event) {
+      if (gameEnded) return;
+
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      const meshes = [];
+      gameGrid.forEach(layer => {
+        layer.forEach(row => {
+          row.forEach(block => {
+            if (block.mesh) meshes.push(block.mesh);
+          });
+        });
+      });
+
+      const intersects = raycaster.intersectObjects(meshes);
+
+      if (intersects.length > 0) {
+        const mesh = intersects[0].object;
+        const block = findBlockByMesh(mesh);
+
+        if (block) {
+          if (event.button === 0) { // Left click
+            revealBlock(block);
+          } else if (event.button === 2) { // Right click
+            toggleFlag(block);
+          }
+        }
+      }
+    }
+
+    function findBlockByMesh(mesh) {
+      for (let x = 0; x < gridSize.x; x++) {
+        for (let y = 0; y < gridSize.y; y++) {
+          for (let z = 0; z < gridSize.z; z++) {
+            if (gameGrid[x][y][z].mesh === mesh) {
+              return gameGrid[x][y][z];
+            }
+          }
+        }
+      }
+      return null;
+    }
+
+    function newGame() {
+      // Clear scene
+      while (scene.children.length > 0) {
+        const child = scene.children[0];
+        scene.remove(child); // Odebrat objekt ze scény jako první
+
+        // Správné uvolnění zdrojů podle typu objektu
+        if (child instanceof THREE.Mesh) {
+          if (child.geometry) {
+            child.geometry.dispose();
+          }
+          if (child.material) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach(material => {
+                if (material.map) { // Uvolnit texturu, pokud existuje
+                  material.map.dispose();
+                }
+                material.dispose();
+              });
+            } else {
+              if (child.material.map) { // Uvolnit texturu, pokud existuje
+                child.material.map.dispose();
+              }
+              child.material.dispose();
+            }
+          }
+        } else if (child instanceof THREE.Light) {
+          // Pro světla, která vrhají stíny, je třeba uvolnit jejich shadow map texturu
+          if (child.shadow && child.shadow.map) {
+            child.shadow.map.dispose();
+          }
+          // Většina světel nemá vlastní .dispose() metodu
+        }
+        // Zde můžete přidat logiku pro další typy objektů, pokud je používáte
+      }
+
+      // Re-add enhanced lights
+      const ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+      scene.add(ambientLight);
+
+      const directionalLight = new THREE.DirectionalLight(0xff0000, 1.0);
+      directionalLight.position.set(10, 10, 10);
+      directionalLight.castShadow = true;
+      directionalLight.shadow.mapSize.width = 2048;
+      directionalLight.shadow.mapSize.height = 2048;
+      scene.add(directionalLight);
+
+      const pointLight = new THREE.PointLight(0xffaa00, 0.8, 100);
+      pointLight.position.set(0, 15, 0);
+      scene.add(pointLight);
+
+      // Add dynamic colored lights
+      const redLight = new THREE.PointLight(0xff0000, 0.5, 50);
+      redLight.position.set(-10, 5, -10);
+      scene.add(redLight);
+
+      const blueLight = new THREE.PointLight(0x0066ff, 0.5, 50);
+      blueLight.position.set(10, 5, 10);
+      scene.add(blueLight);
+
+      // Get settings (zbytek funkce newGame zůstává stejný)
+      const size = document.getElementById('sizeSelect').value;
+      const difficulty = document.getElementById('difficultySelect').value;
+
+      // Set grid size
+      switch (size) {
+        case 'small': gridSize = { x: 5, y: 5, z: 5 }; break;
+        case 'medium': gridSize = { x: 7, y: 7, z: 7 }; break;
+        case 'large': gridSize = { x: 10, y: 10, z: 10 }; break;
+      }
+
+      // Calculate mine count
+      const totalBlocks = gridSize.x * gridSize.y * gridSize.z;
+      let minePercentage;
+      switch (difficulty) {
+        case 'easy': minePercentage = 0.1; break;
+        case 'medium': minePercentage = 0.15; break;
+        case 'hard': minePercentage = 0.2; break;
+      }
+      totalMines = Math.floor(totalBlocks * minePercentage);
+
+      // Reset game state
+      gameStarted = false;
+      gameEnded = false;
+      revealedCount = 0;
+      mineCount = totalMines;
+
+      // Update UI
+      document.getElementById('mineCount').textContent = mineCount;
+      document.getElementById('timer').textContent = '0';
+      document.getElementById('size').textContent = size === 'small' ? 'Small' : size === 'medium' ? 'Medium' : 'Large';
+      document.getElementById('difficulty').textContent = difficulty === 'easy' ? 'Easy' : difficulty === 'medium' ? 'Medium' : 'Hard';
+
+      // Clear timer
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+
+      // Hide message
+      document.getElementById('message').style.display = 'none';
+
+      // Initialize grid
+      initializeGrid();
+      placeMines();
+      calculateNumbers();
+      createMeshes();
+
+      // Position camera
+      const maxDim = Math.max(gridSize.x, gridSize.y, gridSize.z);
+      camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
+      camera.lookAt(0, 0, 0);
+    }
+
+    function initializeGrid() {
+      gameGrid = [];
+      for (let x = 0; x < gridSize.x; x++) {
+        gameGrid[x] = [];
+        for (let y = 0; y < gridSize.y; y++) {
+          gameGrid[x][y] = [];
+          for (let z = 0; z < gridSize.z; z++) {
+            gameGrid[x][y][z] = new Block(x, y, z);
+          }
+        }
+      }
+    }
+
+    function placeMines() {
+      let placedMines = 0;
+      while (placedMines < totalMines) {
+        const x = Math.floor(Math.random() * gridSize.x);
+        const y = Math.floor(Math.random() * gridSize.y);
+        const z = Math.floor(Math.random() * gridSize.z);
+
+        if (!gameGrid[x][y][z].isMine) {
+          gameGrid[x][y][z].isMine = true;
+          placedMines++;
+        }
+      }
+    }
+
+    function calculateNumbers() {
+      for (let x = 0; x < gridSize.x; x++) {
+        for (let y = 0; y < gridSize.y; y++) {
+          for (let z = 0; z < gridSize.z; z++) {
+            if (!gameGrid[x][y][z].isMine) {
+              gameGrid[x][y][z].neighborMines = countNeighborMines(x, y, z);
+            }
+          }
+        }
+      }
+    }
+
+    function countNeighborMines(x, y, z) {
+      let count = 0;
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dz = -1; dz <= 1; dz++) {
+            if (dx === 0 && dy === 0 && dz === 0) continue;
+
+            const nx = x + dx;
+            const ny = y + dy;
+            const nz = z + dz;
+
+            if (nx >= 0 && nx < gridSize.x &&
+              ny >= 0 && ny < gridSize.y &&
+              nz >= 0 && nz < gridSize.z) {
+              if (gameGrid[nx][ny][nz].isMine) {
+                count++;
+              }
+            }
+          }
+        }
+      }
+      return count;
+    }
+
+    function createMeshes() {
+      const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+      const spacing = 1.3; // Increased spacing between blocks
+
+      for (let x = 0; x < gridSize.x; x++) {
+        for (let y = 0; y < gridSize.y; y++) {
+          for (let z = 0; z < gridSize.z; z++) {
+            const block = gameGrid[x][y][z];
+            const material = new THREE.MeshPhongMaterial({
+              color: COLORS.hidden,
+              shininess: 50,
+              specular: 0x444444,
+              emissive: 0x111111
+            });
+
+            block.mesh = new THREE.Mesh(geometry, material);
+            block.mesh.position.set(
+              (x - gridSize.x / 2 + 0.5) * spacing,
+              (y - gridSize.y / 2 + 0.5) * spacing,
+              (z - gridSize.z / 2 + 0.5) * spacing
+            );
+            block.mesh.castShadow = true;
+            block.mesh.receiveShadow = true;
+
+            scene.add(block.mesh);
+          }
+        }
+      }
+    }
+
+    function revealBlock(block) {
+      if (block.isRevealed || block.isFlagged || gameEnded) return;
+
+      if (!gameStarted) {
+        gameStarted = true;
+        startTime = Date.now();
+        timerInterval = setInterval(updateTimer, 1000);
+      }
+
+      block.isRevealed = true;
+      revealedCount++;
+
+      if (block.isMine) {
+        // Game over - show mine on all faces
+        createMineBlock(block);
+        createExplosionEffect(block);
+        endGame(false);
+      } else {
+        if (block.neighborMines > 0) {
+          // Show number on all faces
+          addNumberToBlock(block);
+        } else {
+          // Remove the block completely for empty spaces
+          if (block.mesh) {
+            scene.remove(block.mesh);
+            if (block.mesh.geometry) block.mesh.geometry.dispose();
+            if (Array.isArray(block.mesh.material)) {
+              block.mesh.material.forEach(mat => mat.dispose());
+            } else {
+              block.mesh.material.dispose();
+            }
+            block.mesh = null;
+          }
+          // Auto-reveal neighbors
+          revealNeighbors(block);
+        }
+
+        // Check win condition
+        if (revealedCount === gridSize.x * gridSize.y * gridSize.z - totalMines) {
+          endGame(true);
+        }
+      }
+    }
+
+    function addNumberToBlock(block) {
+      // Create texture with number
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = 128;
+      canvas.height = 128;
+
+      // Dark background
+      context.fillStyle = '#2a2a2a';
+      context.fillRect(0, 0, 128, 128);
+
+      // Add border
+      context.strokeStyle = '#555555';
+      context.lineWidth = 4;
+      context.strokeRect(2, 2, 124, 124);
+
+      // Draw number
+      context.fillStyle = getNumberColor(block.neighborMines);
+      context.font = 'bold 70px Courier New';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(block.neighborMines.toString(), 64, 64);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+
+      // Create materials for all 6 faces with the same texture
+      const materials = [];
+      for (let i = 0; i < 6; i++) {
+        materials.push(new THREE.MeshPhongMaterial({
+          map: texture.clone(),
+          transparent: false,
+          shininess: 30,
+          emissive: new THREE.Color(0x002200)
+        }));
+      }
+
+      // Remove the old mesh safely
+      if (block.mesh) {
+        scene.remove(block.mesh);
+        if (block.mesh.geometry) block.mesh.geometry.dispose();
+        if (Array.isArray(block.mesh.material)) {
+          block.mesh.material.forEach(mat => {
+            if (mat.map) mat.map.dispose();
+            mat.dispose();
+          });
+        } else {
+          if (block.mesh.material.map) block.mesh.material.map.dispose();
+          block.mesh.material.dispose();
+        }
+      }
+
+      // Create new mesh with number on all faces
+      const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+      const spacing = 1.3;
+      block.mesh = new THREE.Mesh(geometry, materials);
+      block.mesh.position.set(
+        (block.x - gridSize.x / 2 + 0.5) * spacing,
+        (block.y - gridSize.y / 2 + 0.5) * spacing,
+        (block.z - gridSize.z / 2 + 0.5) * spacing
+      );
+      block.mesh.castShadow = true;
+      block.mesh.receiveShadow = true;
+
+      scene.add(block.mesh);
+    }
+
+    function createMineBlock(block) {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = 128;
+      canvas.height = 128;
+
+      context.fillStyle = '#ff0000';
+      context.fillRect(0, 0, 128, 128);
+      context.fillStyle = '#000000';
+      context.font = 'bold 80px Courier New';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText('*', 64, 64);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+
+      const materials = [];
+      for (let i = 0; i < 6; i++) {
+        materials.push(new THREE.MeshPhongMaterial({
+          map: texture.clone(),
+          shininess: 20,
+          emissive: new THREE.Color(0x220000)
+        }));
+      }
+
+      if (block.mesh) {
+        scene.remove(block.mesh);
+        if (block.mesh.geometry) block.mesh.geometry.dispose();
+        if (Array.isArray(block.mesh.material)) {
+          block.mesh.material.forEach(mat => {
+            if (mat.map) mat.map.dispose();
+            mat.dispose();
+          });
+        } else {
+          if (block.mesh.material.map) block.mesh.material.map.dispose();
+          block.mesh.material.dispose();
+        }
+      }
+
+      const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+      const spacing = 1.3;
+      block.mesh = new THREE.Mesh(geometry, materials);
+      block.mesh.position.set(
+        (block.x - gridSize.x / 2 + 0.5) * spacing,
+        (block.y - gridSize.y / 2 + 0.5) * spacing,
+        (block.z - gridSize.z / 2 + 0.5) * spacing
+      );
+
+      scene.add(block.mesh);
+    }
+
+    function getNumberColor(number) {
+      const colors = ['', '#0000ff', '#00ff00', '#ff0000', '#800080', '#800000', '#008080', '#000000', '#808080'];
+      return colors[number] || '#ffffff';
+    }
+
+    function revealNeighbors(block) {
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dz = -1; dz <= 1; dz++) {
+            if (dx === 0 && dy === 0 && dz === 0) continue;
+
+            const nx = block.x + dx;
+            const ny = block.y + dy;
+            const nz = block.z + dz;
+
+            if (nx >= 0 && nx < gridSize.x &&
+              ny >= 0 && ny < gridSize.y &&
+              nz >= 0 && nz < gridSize.z) {
+              revealBlock(gameGrid[nx][ny][nz]);
+            }
+          }
+        }
+      }
+    }
+
+    function toggleFlag(block) {
+      if (block.isRevealed || gameEnded) return;
+
+      block.isFlagged = !block.isFlagged;
+
+      if (block.isFlagged) {
+        // Create flag texture for all faces
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.width = 128;
+        canvas.height = 128;
+
+        context.fillStyle = '#ffff00';
+        context.fillRect(0, 0, 128, 128);
+
+        // Add border
+        context.strokeStyle = '#cc8800';
+        context.lineWidth = 4;
+        context.strokeRect(2, 2, 124, 124);
+
+        context.fillStyle = '#ff0000';
+        context.font = 'bold 80px Courier New';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText('F', 64, 64);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+
+        const materials = [];
+        for (let i = 0; i < 6; i++) {
+          materials.push(new THREE.MeshPhongMaterial({
+            map: texture.clone(),
+            shininess: 40,
+            emissive: new THREE.Color(0x221100)
+          }));
+        }
+
+        if (block.mesh) {
+          scene.remove(block.mesh);
+          if (block.mesh.geometry) block.mesh.geometry.dispose();
+          if (Array.isArray(block.mesh.material)) {
+            block.mesh.material.forEach(mat => {
+              if (mat.map) mat.map.dispose();
+              mat.dispose();
+            });
+          } else {
+            if (block.mesh.material.map) block.mesh.material.map.dispose();
+            block.mesh.material.dispose();
+          }
+        }
+
+        const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+        const spacing = 1.3;
+        block.mesh = new THREE.Mesh(geometry, materials);
+        block.mesh.position.set(
+          (block.x - gridSize.x / 2 + 0.5) * spacing,
+          (block.y - gridSize.y / 2 + 0.5) * spacing,
+          (block.z - gridSize.z / 2 + 0.5) * spacing
+        );
+        block.mesh.castShadow = true;
+        block.mesh.receiveShadow = true;
+
+        scene.add(block.mesh);
+        mineCount--;
+      } else {
+        // Restore original hidden block
+        if (block.mesh) {
+          scene.remove(block.mesh);
+          if (block.mesh.geometry) block.mesh.geometry.dispose();
+          if (Array.isArray(block.mesh.material)) {
+            block.mesh.material.forEach(mat => {
+              if (mat.map) mat.map.dispose();
+              mat.dispose();
+            });
+          } else {
+            if (block.mesh.material.map) block.mesh.material.map.dispose();
+            block.mesh.material.dispose();
+          }
+        }
+
+        const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+        const spacing = 1.3;
+        const material = new THREE.MeshPhongMaterial({
+          color: COLORS.hidden,
+          shininess: 50,
+          specular: 0x444444,
+          emissive: 0x111111
+        });
+        block.mesh = new THREE.Mesh(geometry, material);
+        block.mesh.position.set(
+          (block.x - gridSize.x / 2 + 0.5) * spacing,
+          (block.y - gridSize.y / 2 + 0.5) * spacing,
+          (block.z - gridSize.z / 2 + 0.5) * spacing
+        );
+        block.mesh.castShadow = true;
+        block.mesh.receiveShadow = true;
+
+        scene.add(block.mesh);
+        mineCount++;
+      }
+
+      document.getElementById('mineCount').textContent = mineCount;
+    }
+
+    function endGame(won) {
+      gameEnded = true;
+      clearInterval(timerInterval);
+
+      const message = document.getElementById('message');
+      if (won) {
+        message.innerHTML = '<div class="doom-text">VICTORY!</div><div>All mines found!</div>';
+        message.style.color = '#00ff00';
+        createVictoryEffect();
+      } else {
+        message.innerHTML = '<div class="doom-text">GAME OVER!</div><div>Mine exploded!</div>';
+        message.style.color = '#ff0000';
+
+        // Reveal all mines with mine symbol on all faces
+        for (let x = 0; x < gridSize.x; x++) {
+          for (let y = 0; y < gridSize.y; y++) {
+            for (let z = 0; z < gridSize.z; z++) {
+              const block = gameGrid[x][y][z];
+              if (block.isMine && !block.isRevealed) {
+                createMineBlock(block);
+              }
+            }
+          }
+        }
+      }
+
+      message.style.display = 'block';
+    }
+
+    function createVictoryEffect() {
+      // Create victory particles
+      const particleCount = 100;
+      for (let i = 0; i < particleCount; i++) {
+        const geometry = new THREE.SphereGeometry(0.03, 6, 6);
+        const material = new THREE.MeshBasicMaterial({
+          color: new THREE.Color().setHSL(Math.random(), 1.0, 0.5),
+          transparent: true,
+          opacity: 1.0
+        });
+        const particle = new THREE.Mesh(geometry, material);
+
+        particle.position.set(
+          (Math.random() - 0.5) * 20,
+          (Math.random() - 0.5) * 20,
+          (Math.random() - 0.5) * 20
+        );
+        particle.velocity = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.2,
+          Math.random() * 0.3,
+          (Math.random() - 0.5) * 0.2
+        );
+        particle.life = 2.0;
+
+        explosionParticles.push(particle);
+        scene.add(particle);
+      }
+    }
+
+    function updateTimer() {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      document.getElementById('timer').textContent = elapsed;
+    }
+
+    // Particle system for explosion effects
+    function createExplosionEffect(block) {
+      const particleCount = 50;
+      const spacing = 1.3;
+      const blockPos = new THREE.Vector3(
+        (block.x - gridSize.x / 2 + 0.5) * spacing,
+        (block.y - gridSize.y / 2 + 0.5) * spacing,
+        (block.z - gridSize.z / 2 + 0.5) * spacing
+      );
+
+      for (let i = 0; i < particleCount; i++) {
+        const geometry = new THREE.SphereGeometry(0.02, 4, 4);
+        const material = new THREE.MeshBasicMaterial({
+          color: Math.random() > 0.5 ? 0xff0000 : 0xffaa00,
+          transparent: true,
+          opacity: 1.0
+        });
+        const particle = new THREE.Mesh(geometry, material);
+
+        particle.position.copy(blockPos);
+        particle.velocity = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.3,
+          (Math.random() - 0.5) * 0.3,
+          (Math.random() - 0.5) * 0.3
+        );
+        particle.life = 1.0;
+
+        explosionParticles.push(particle);
+        scene.add(particle);
+      }
+    }
+
+    function updateParticles() {
+      for (let i = explosionParticles.length - 1; i >= 0; i--) {
+        const particle = explosionParticles[i];
+        particle.position.add(particle.velocity);
+        particle.velocity.multiplyScalar(0.98); // Friction
+        particle.life -= 0.02;
+        particle.material.opacity = particle.life;
+
+        if (particle.life <= 0) {
+          scene.remove(particle);
+          particle.geometry.dispose();
+          particle.material.dispose();
+          explosionParticles.splice(i, 1);
+        }
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      updateParticles();
+
+      // Add subtle camera shake effect when game is over
+      if (gameEnded && explosionParticles.length > 0) {
+        camera.position.x += (Math.random() - 0.5) * 0.1;
+        camera.position.y += (Math.random() - 0.5) * 0.1;
+        camera.position.z += (Math.random() - 0.5) * 0.1;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Initialize game
+    init();
+  </script>
+</body>
+
+</html>
