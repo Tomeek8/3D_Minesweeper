@@ -213,7 +213,7 @@
           <ul>
             <li><strong>Left Click:</strong> Reveal block</li>
             <li><strong>Right Click:</strong> Flag/unflag block</li>
-            <li><strong>Numbers:</strong> Count of mines nearby (26 neighbors)</li>
+            <li><strong>Numbers:</strong> Count of mines in the surrounding blocks (maximum of 26 neighbors)</li>
             <li><strong>Empty blocks:</strong> Auto-reveal surrounding area</li>
             <li><strong>Camera controls:</strong>
               <ul>
@@ -838,7 +838,8 @@
           map: texture.clone(),
           transparent: false,
           shininess: 30,
-          emissive: new THREE.Color(0x002200)
+          emissive: new THREE.Color(0x111111),
+          emissiveIntensity: 0.3
         }));
       }
 
@@ -925,7 +926,7 @@
     }
 
     function getNumberColor(number) {
-      const colors = ['', '#0000ff', '#00ff00', '#ff0000', '#800080', '#800000', '#008080', '#000000', '#808080'];
+      const colors = ['', '#00ffff', '#00ff00', '#ff00ff', '#ff9900', '#33ccff', '#ff33cc', '#ccff33', '#cccccc'];
       return colors[number] || '#ffffff';
     }
 
