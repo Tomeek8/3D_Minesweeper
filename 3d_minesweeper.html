@@ -64,6 +64,7 @@
     #gameContainer {
       width: 100vw;
       height: 100vh;
+      background-color: #000000;
     }
 
     .doom-text {
@@ -414,7 +415,7 @@
           const deltaY = event.clientY - mouseY;
 
           // Mouse sensitivity - consistent across different frame rates
-          const mouseSensitivity = 0.005;
+          const mouseSensitivity = 0.006;
           targetRotationY -= deltaX * mouseSensitivity;
           targetRotationX += deltaY * mouseSensitivity;
 
@@ -455,7 +456,7 @@
 
       // Handle keyboard rotation - now time-based
       function handleKeyboardInput() {
-        const rotationSpeed = 1.5; // radians per second
+        const rotationSpeed = 2; // radians per second
         const frameRotation = rotationSpeed * deltaTime;
 
         if (keys['ArrowLeft']) {
