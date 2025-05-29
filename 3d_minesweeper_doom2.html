@@ -146,6 +146,7 @@
       <div>Right Click: Flag</div>
       <div>Mouse Wheel: Zoom</div>
       <div>Drag: Rotate</div>
+      <div>Arrow Keys: Rotate</div>
     </div>
   </div>
 
@@ -254,12 +255,17 @@
       let targetRotationY = 0;
       let currentRotationX = 0;
       let currentRotationY = 0;
+      let keys = {};
+      let autoRotate = true;
+      let userInteracted = false;
 
       renderer.domElement.addEventListener('mousedown', (event) => {
         event.preventDefault();
         mouseDown = true;
         mouseX = event.clientX;
         mouseY = event.clientY;
+        userInteracted = true;
+        autoRotate = false;
 
         if (event.button === 0 || event.button === 2) {
           handleClick(event);
@@ -271,7 +277,7 @@
           const deltaX = event.clientX - mouseX;
           const deltaY = event.clientY - mouseY;
 
-          targetRotationY += deltaX * 0.01;
+          targetRotationY -= deltaX * 0.01; // Fixed horizontal rotation direction
           targetRotationX += deltaY * 0.01;
 
           mouseX = event.clientX;
@@ -292,8 +298,45 @@
         event.preventDefault();
       });
 
+      // Keyboard controls
+      document.addEventListener('keydown', (event) => {
+        keys[event.code] = true;
+        userInteracted = true;
+        autoRotate = false;
+      });
+
+      document.addEventListener('keyup', (event) => {
+        keys[event.code] = false;
+      });
+
+      // Handle keyboard rotation
+      function handleKeyboardInput() {
+        const rotationSpeed = 0.08;
+
+        if (keys['ArrowLeft']) {
+          targetRotationY -= rotationSpeed;
+        }
+        if (keys['ArrowRight']) {
+          targetRotationY += rotationSpeed;
+        }
+        if (keys['ArrowUp']) {
+          targetRotationX -= rotationSpeed;
+        }
+        if (keys['ArrowDown']) {
+          targetRotationX += rotationSpeed;
+        }
+      }
+
       // Smooth rotation
       function updateRotation() {
+        // Auto rotation when game starts
+        if (autoRotate && !userInteracted) {
+          targetRotationX += 0.005;
+          targetRotationY += 0.008;
+        }
+
+        handleKeyboardInput();
+
         currentRotationX += (targetRotationX - currentRotationX) * 0.1;
         currentRotationY += (targetRotationY - currentRotationY) * 0.1;
 
@@ -443,6 +486,8 @@
       gameEnded = false;
       revealedCount = 0;
       mineCount = totalMines;
+      userInteracted = false;
+      autoRotate = true;
 
       // Update UI
       document.getElementById('mineCount').textContent = mineCount;
