@@ -524,7 +524,7 @@
       gameGrid.forEach(layer => {
         layer.forEach(row => {
           row.forEach(block => {
-            if (block.mesh && !block.isRevealed) meshes.push(block.mesh);
+            if (block.mesh && !block.isRevealed && !block.isFlagged) meshes.push(block.mesh);
           });
         });
       });
@@ -535,7 +535,7 @@
         const mesh = intersects[0].object;
         const block = findBlockByMesh(mesh);
 
-        if (block && block !== hoveredBlock && !block.isRevealed) {
+        if (block && block !== hoveredBlock && !block.isRevealed && !block.isFlagged) {
           // Remove hover from previous block
           removeHoverEffect();
 
@@ -588,8 +588,8 @@
 
     function removeHoverEffect() {
       if (hoveredBlock && hoveredBlock.mesh && originalMaterial) {
-        // Only remove hover effect if block is not revealed
-        if (!hoveredBlock.isRevealed) {
+        // Only remove hover effect if block is not revealed and not flagged
+        if (!hoveredBlock.isRevealed && !hoveredBlock.isFlagged) {
           // Restore original material
           if (Array.isArray(hoveredBlock.mesh.material)) {
             hoveredBlock.mesh.material.forEach(mat => {
