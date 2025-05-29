@@ -57,6 +57,8 @@
       border: 2px solid #ff0000;
       padding: 5px;
       font-family: 'Courier New', monospace;
+      /* caret-color: transparent; */
+      /* Make the blinking text cursor transparent - moved to global rule */
     }
 
     #gameContainer {
@@ -110,6 +112,15 @@
       color: #ffff00;
       box-shadow: 0 0 10px #ffff00;
       transition: all 0.3s ease;
+    }
+
+    /* Hide the browser's default focus outline and text cursor */
+    * {
+      caret-color: transparent;
+    }
+
+    *:focus {
+      outline: none;
     }
   </style>
 </head>
