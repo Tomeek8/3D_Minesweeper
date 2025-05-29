@@ -578,8 +578,8 @@
         const newDistance = currentDistance * zoomFactor;
 
         // Limit zoom to prevent extreme values that cause jittering
-        const minDistance = Math.max(gridSize.x, gridSize.y, gridSize.z) * 1.5;
-        const maxDistance = Math.max(gridSize.x, gridSize.y, gridSize.z) * 8;
+        const minDistance = Math.max(gridSize.x, gridSize.y, gridSize.z) * 0.7;
+        const maxDistance = Math.max(gridSize.x, gridSize.y, gridSize.z) * 7;
 
         if (newDistance >= minDistance && newDistance <= maxDistance) {
           camera.position.multiplyScalar(zoomFactor);
