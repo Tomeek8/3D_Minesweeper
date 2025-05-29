@@ -369,9 +369,9 @@
     <br><br>
     <div>Difficulty:</div>
     <select id="difficultySelect">
-      <option value="easy">Easy (10%)</option>
-      <option value="medium">Medium (15%)</option>
-      <option value="hard">Hard (20%)</option>
+      <option value="easy">Easy (5%)</option>
+      <option value="medium">Medium (10%)</option>
+      <option value="hard">Hard (15%)</option>
     </select>
     <br><br>
     <button onclick="newGame()">NEW GAME</button>
@@ -406,9 +406,9 @@
     <div style="margin-bottom: 8px;">Difficulty:</div>
     <select id="difficultySelectMobile"
       onchange="document.getElementById('difficultySelect').value = this.value; document.getElementById('difficultySelect').dispatchEvent(new Event('change'));">
-      <option value="easy">Easy (10%)</option>
-      <option value="medium">Medium (15%)</option>
-      <option value="hard">Hard (20%)</option>
+      <option value="easy">Easy (5%)</option>
+      <option value="medium">Medium (10%)</option>
+      <option value="hard">Hard (15%)</option>
     </select>
     <br><br>
     <button onclick="newGame(); toggleMobileMenu();">NEW GAME</button>
@@ -805,7 +805,7 @@
       const sizeMap = { small: { x: 5, y: 5, z: 5 }, medium: { x: 7, y: 7, z: 7 }, large: { x: 10, y: 10, z: 10 } };
       gridSize = sizeMap[size];
 
-      const difficultyMap = { easy: 0.1, medium: 0.15, hard: 0.2 };
+      const difficultyMap = { easy: 0.05, medium: 0.1, hard: 0.15 };
       totalMines = Math.floor(gridSize.x * gridSize.y * gridSize.z * difficultyMap[difficulty]);
 
       resetGameState();
@@ -855,10 +855,14 @@
     }
 
     function updateUI(size, difficulty) {
-
+      document.getElementById('mineCount').textContent = totalMines;
       document.getElementById('timer').textContent = '0';
       document.getElementById('size').textContent = size.charAt(0).toUpperCase() + size.slice(1);
       document.getElementById('difficulty').textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+    }
+
+    function updateMineCountUI() {
+      document.getElementById('mineCount').textContent = mineCount;
     }
 
     function initializeGrid() {
@@ -1115,6 +1119,7 @@
         }));
         replaceMesh(block, materials);
         mineCount--;
+        updateMineCountUI();
       } else {
         const material = new THREE.MeshPhongMaterial({
           color: COLORS.hidden,
@@ -1124,6 +1129,7 @@
         });
         replaceMesh(block, material);
         mineCount++;
+        updateMineCountUI();
       }
 
 
