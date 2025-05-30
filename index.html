@@ -4,13 +4,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Minesweeper - Doom Style</title>
+  <title>3D Minesweeper</title>
   <style>
     body {
       margin: 0;
       padding: 0;
       background: linear-gradient(45deg, #1a0000, #330000);
       font-family: 'Courier New', monospace;
+      /* Reverted to original font */
+      font-size: 1.05em;
+      /* Slightly increased font size */
       color: #ff0000;
       overflow: hidden;
     }
@@ -36,6 +39,8 @@
       border: 2px solid #ff0000;
       border-radius: 5px;
       text-align: center;
+      font-size: 1.05em;
+      /* Slightly increased font size */
     }
 
     button {
@@ -332,7 +337,7 @@
     <div class="doom-text">
       3D MINESWEEPER
       <div class="rules-container">
-        <div class="rules-icon">?</div>
+        <div class="rules-icon">i</div>
         <div class="rules-tooltip">
           <h4>GAME RULES</h4>
           <ul>
